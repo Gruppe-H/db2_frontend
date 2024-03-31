@@ -18,10 +18,10 @@ app.get('/', (req, res) => {
         '        <li>Is there a difference in the target reduction emissions based on whether or not the city is a member of C40 or GCoM?</li>\n' +
         '        <li>What difference is there between each region and their target emission?</li>\n' +
         '        <li>Which organization plans to reduce the most in %?</li>\n' +
-        '        <li>What correlation is there between GDP, base emissions and target emissions?</li>\n' +
+        '        <li>For each contry, how many cities in that country is represented in the data?</li>\n' +
         '        <li>How many countries are represented in the data?</li>\n' +
         '        <li>How many have a desired target emission without a base emission?</li>\n' +
-        '        <li>Is there a correlation between baseline year and the target emissions?</li>\n' +
+        '        <li>What is the most common sector?</li>\n' +
         '    </ol>' +
         '</div>' + '<div><h2>Answers:</h2>' +
         'To see the answers to the questions, see /api/question{n} for question n, ' +

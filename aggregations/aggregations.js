@@ -3,30 +3,30 @@ const q1Aggr = [
         $group: {
             _id: "$Organisation Number",
             AvgCityPopulation: {
-                $avg: "$City Population",
+                $avg: "$City Population"
             },
             AvgTotalEmissions: {
-                $avg: "$Total emissions (metric tonnes CO2e)",
+                $avg: "$Total emissions (metric tonnes CO2e)"
             },
             count: {
-                $sum: 1,
-            },
-        },
+                $sum: 1
+            }
+        }
     },
     {
         $match: {
             AvgCityPopulation: {
                 $exists: true,
-                $ne: null,
+                $ne: null
             },
             AvgTotalEmissions: {
                 $exists: true,
-                $ne: null,
+                $ne: null
             },
             count: {
-                $gt: 1,
-            },
-        },
+                $gt: 1
+            }
+        }
     },
     {
         $group: {
@@ -35,38 +35,38 @@ const q1Aggr = [
                 $sum: {
                     $multiply: [
                         "$AvgCityPopulation",
-                        "$AvgTotalEmissions",
-                    ],
-                },
+                        "$AvgTotalEmissions"
+                    ]
+                }
             },
             sumCityPopulation: {
-                $sum: "$AvgCityPopulation",
+                $sum: "$AvgCityPopulation"
             },
             sumTotalEmissions: {
-                $sum: "$AvgTotalEmissions",
+                $sum: "$AvgTotalEmissions"
             },
             sumCityPopulation2: {
                 $sum: {
-                    $pow: ["$AvgCityPopulation", 2],
-                },
+                    $pow: ["$AvgCityPopulation", 2]
+                }
             },
             sumTotalEmissions2: {
                 $sum: {
-                    $pow: ["$AvgTotalEmissions", 2],
-                },
+                    $pow: ["$AvgTotalEmissions", 2]
+                }
             },
             n: {
-                $sum: 1,
-            },
-        },
+                $sum: 1
+            }
+        }
     },
     {
         $project: {
             _id: 0,
             correlationCoeffecient: {
                 $cond: {
-                    if: {
-                        $eq: ["$n", 0],
+                    if : {
+                        $eq: ["$n", 0]
                     },
                     then: null,
                     else: {
@@ -76,16 +76,16 @@ const q1Aggr = [
                                     {
                                         $multiply: [
                                             "$n",
-                                            "$sumCityPopulationTotalEmissions",
-                                        ],
+                                            "$sumCityPopulationTotalEmissions"
+                                        ]
                                     },
                                     {
                                         $multiply: [
                                             "$sumCityPopulation",
-                                            "$sumTotalEmissions",
-                                        ],
-                                    },
-                                ],
+                                            "$sumTotalEmissions"
+                                        ]
+                                    }
+                                ]
                             },
                             {
                                 $sqrt: {
@@ -95,41 +95,41 @@ const q1Aggr = [
                                                 {
                                                     $multiply: [
                                                         "$n",
-                                                        "$sumCityPopulation2",
-                                                    ],
+                                                        "$sumCityPopulation2"
+                                                    ]
                                                 },
                                                 {
                                                     $pow: [
                                                         "$sumCityPopulation",
-                                                        2,
-                                                    ],
-                                                },
-                                            ],
+                                                        2
+                                                    ]
+                                                }
+                                            ]
                                         },
                                         {
                                             $subtract: [
                                                 {
                                                     $multiply: [
                                                         "$n",
-                                                        "$sumTotalEmissions2",
-                                                    ],
+                                                        "$sumTotalEmissions2"
+                                                    ]
                                                 },
                                                 {
                                                     $pow: [
                                                         "$sumTotalEmissions",
-                                                        2,
-                                                    ],
-                                                },
-                                            ],
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                },
-            },
-        },
+                                                        2
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
     },
 ];
 
@@ -144,12 +144,12 @@ const q2Aggr = [
         $group: {
             _id: {
                 OrganisationNumber: "$Organisation Number",
-                ReportingYear: "$Reporting Year",
+                ReportingYear: "$Reporting Year"
             },
             TotalEmissions: {
-                $sum: "$Total emissions (metric tonnes CO2e)",
-            },
-        },
+                $sum: "$Total emissions (metric tonnes CO2e)"
+            }
+        }
     },
     {
         $group: {
@@ -159,20 +159,20 @@ const q2Aggr = [
                     $cond: [
                         {$eq: ["$_id.ReportingYear", 2016]},
                         "$TotalEmissions",
-                        null,
-                    ],
-                },
+                        null
+                    ]
+                }
             },
             emissions2017: {
                 $max: {
                     $cond: [
                         {$eq: ["$_id.ReportingYear", 2017]},
                         "$TotalEmissions",
-                        null,
-                    ],
-                },
-            },
-        },
+                        null
+                    ]
+                }
+            }
+        }
     },
     {
         $project: {
@@ -181,23 +181,23 @@ const q2Aggr = [
             emissions2017: 1,
             change: {
                 $cond: {
-                    if: {
+                    if : {
                         $and: [
                             {$ne: ["$emissions2016", null]},
-                            {$ne: ["$emissions2017", null]},
-                        ],
+                            {$ne: ["$emissions2017", null]}
+                        ]
                     },
                     then: {
                         $cond: {
-                            if: {$gt: ["$emissions2016", "$emissions2017"]},
+                            if : {$gt: ["$emissions2016", "$emissions2017"]},
                             then: "Decrease",
-                            else: "Increase",
-                        },
+                            else: "Increase"
+                        }
                     },
-                    else: null,
-                },
-            },
-        },
+                    else: null
+                }
+            }
+        }
     },
 ];
 
@@ -206,21 +206,21 @@ const q3Aggr = [
         $match: {
             "Reporting Year": {$in: [2016, 2017]},
             "Percentage reduction target": {
-                $exists: true,
-            },
-        },
+                $exists: true
+            }
+        }
     },
     {
         $group: {
             _id: {
                 OrganisationNumber:
-                    "$Organisation Number",
-                ReportingYear: "$Reporting Year",
+                        "$Organisation Number",
+                ReportingYear: "$Reporting Year"
             },
             PercentageReductionTarget: {
-                $max: "$Percentage reduction target",
-            }, // Assuming Percentage reduction target remains same for all documents with same Organisation Number and Reporting Year
-        },
+                $avg: "$Percentage reduction target"
+            }
+        }
     },
     {
         $group: {
@@ -230,20 +230,20 @@ const q3Aggr = [
                     $cond: [
                         {$eq: ["$_id.ReportingYear", 2016]},
                         "$PercentageReductionTarget",
-                        null,
-                    ],
-                },
+                        null
+                    ]
+                }
             },
             reductionTarget2017: {
                 $max: {
                     $cond: [
                         {$eq: ["$_id.ReportingYear", 2017]},
                         "$PercentageReductionTarget",
-                        null,
-                    ],
-                },
-            },
-        },
+                        null
+                    ]
+                }
+            }
+        }
     },
     {
         $project: {
@@ -252,33 +252,33 @@ const q3Aggr = [
             reductionTarget2017: 1,
             change: {
                 $cond: {
-                    if: {
+                    if : {
                         $and: [
                             {
                                 $ne: [
                                     "$reductionTarget2016",
-                                    null,
-                                ],
+                                    null
+                                ]
                             },
                             {
                                 $ne: [
                                     "$reductionTarget2017",
-                                    null,
-                                ],
-                            },
-                        ],
+                                    null
+                                ]
+                            }
+                        ]
                     },
                     then: {
                         $subtract: [
                             "$reductionTarget2017",
-                            "$reductionTarget2016",
-                        ],
+                            "$reductionTarget2016"
+                        ]
                     },
-                    else: null,
-                },
-            },
-        },
-    },
+                    else: null
+                }
+            }
+        }
+    }
 ];
 
 const q4Aggr = [
@@ -386,7 +386,28 @@ const q6Aggr = [
     }
 ];
 
-const q7Aggr = "TODO";
+const q7Aggr = [
+    {
+        $match: {
+            Country: {$exists: true},
+            City: {$exists: true}
+        }
+    },
+    {
+        $group: {
+            _id: {
+                Country: "$Country",
+                City: "$City"
+            }
+        }
+    },
+    {
+        $group: {
+            _id: "$_id.Country",
+            cityCount: {$sum: 1}
+        }
+    }
+];
 
 const q8Aggr = [
     {
@@ -415,29 +436,50 @@ const q9Aggr = [
                     $not: {
                         $gt: [
                             "$Total emissions (metric tonnes CO2e)",
-                            null,
-                        ],
-                    },
+                            null
+                        ]
+                    }
                 },
                 PercentageReductionTarget:
-                    "$Percentage reduction target",
-            },
-        },
+                        "$Percentage reduction target"
+            }
+        }
     },
     {
         $match: {
-            "_id.baseEmissionsMissing": true,
-        },
+            "_id.baseEmissionsMissing": true
+        }
     },
     {
         $group: {
             _id: null,
-            count: {$sum: 1},
-        },
-    },
+            count: {$sum: 1}
+        }
+    }
 ];
 
-const q10Aggr = "TODO";
+const q10Aggr = [
+    {
+        $match: {
+            Sector: {
+                $exists: true
+            }
+        }
+    },
+    {
+        $group: {
+            _id: "$Sector",
+            count: {
+                $sum: 1
+            }
+        }
+    },
+    {
+        $sort: {
+            count: -1
+        }
+    }
+];
 
 module.exports = {q1Aggr, q2Aggr, q3Aggr, q4Aggr,
     q5Aggr, q6Aggr, q7Aggr, q8Aggr, q9Aggr, q10Aggr};
