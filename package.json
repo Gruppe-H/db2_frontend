@@ -1,5 +1,5 @@
 {
-  "name": "spa2_frontend",
+  "name": "spa3_frontend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
-    "mongodb": "^6.5.0"
+    "mongodb": "^6.5.0",
+    "neo4j-driver": "^5.20.0"
   }
 }

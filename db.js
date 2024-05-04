@@ -1,24 +1,32 @@
-const { MongoClient } = require('mongodb');
+const neo4j = require('neo4j-driver');
 
-const uri = 'mongodb://localhost:27100,localhost:27200/';
-const client = new MongoClient(uri);
+// Neo4j connection URI
+const uri = 'bolt://localhost:7687';
+const user = 'neo4j';
+const password = '12345678';
 
-const connectToMongoDB = async () => {
+// Create a Neo4j driver instance
+const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
+
+// Function to connect to Neo4j database
+const connectToNeo4j = async () => {
     try {
-        await client.connect();
-        console.log('Connected to MongoDB');
+        await driver.verifyConnectivity();
+        console.log('Connected to Neo4j');
     } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
+        console.error('Error connecting to Neo4j:', error);
     }
 };
 
-function getClient() {
-    return client;
+// Function to get Neo4j driver instance
+function getDriver() {
+    return driver;
 }
 
-function getCollection() {
-    const database = client.db('spa2');
-    return database.collection('emissions');
+// Function to get a Neo4j session
+function getSession() {
+    return driver.session();
 }
 
-module.exports = { connectToMongoDB, getClient, getCollection };
+module.exports = { connectToNeo4j, getDriver, getSession };
+

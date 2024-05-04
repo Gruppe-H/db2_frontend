@@ -1,485 +1,118 @@
-const q1Aggr = [
-    {
-        $group: {
-            _id: "$Organisation Number",
-            AvgCityPopulation: {
-                $avg: "$City Population"
-            },
-            AvgTotalEmissions: {
-                $avg: "$Total emissions (metric tonnes CO2e)"
-            },
-            count: {
-                $sum: 1
-            }
-        }
-    },
-    {
-        $match: {
-            AvgCityPopulation: {
-                $exists: true,
-                $ne: null
-            },
-            AvgTotalEmissions: {
-                $exists: true,
-                $ne: null
-            },
-            count: {
-                $gt: 1
-            }
-        }
-    },
-    {
-        $group: {
-            _id: null,
-            sumCityPopulationTotalEmissions: {
-                $sum: {
-                    $multiply: [
-                        "$AvgCityPopulation",
-                        "$AvgTotalEmissions"
-                    ]
-                }
-            },
-            sumCityPopulation: {
-                $sum: "$AvgCityPopulation"
-            },
-            sumTotalEmissions: {
-                $sum: "$AvgTotalEmissions"
-            },
-            sumCityPopulation2: {
-                $sum: {
-                    $pow: ["$AvgCityPopulation", 2]
-                }
-            },
-            sumTotalEmissions2: {
-                $sum: {
-                    $pow: ["$AvgTotalEmissions", 2]
-                }
-            },
-            n: {
-                $sum: 1
-            }
-        }
-    },
-    {
-        $project: {
-            _id: 0,
-            correlationCoeffecient: {
-                $cond: {
-                    if : {
-                        $eq: ["$n", 0]
-                    },
-                    then: null,
-                    else: {
-                        $divide: [
-                            {
-                                $subtract: [
-                                    {
-                                        $multiply: [
-                                            "$n",
-                                            "$sumCityPopulationTotalEmissions"
-                                        ]
-                                    },
-                                    {
-                                        $multiply: [
-                                            "$sumCityPopulation",
-                                            "$sumTotalEmissions"
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                $sqrt: {
-                                    $multiply: [
-                                        {
-                                            $subtract: [
-                                                {
-                                                    $multiply: [
-                                                        "$n",
-                                                        "$sumCityPopulation2"
-                                                    ]
-                                                },
-                                                {
-                                                    $pow: [
-                                                        "$sumCityPopulation",
-                                                        2
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            $subtract: [
-                                                {
-                                                    $multiply: [
-                                                        "$n",
-                                                        "$sumTotalEmissions2"
-                                                    ]
-                                                },
-                                                {
-                                                    $pow: [
-                                                        "$sumTotalEmissions",
-                                                        2
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-    },
-];
+const q1Aggr = `
+MATCH (city)<-[:IN_CITY]-(o:Organisation)-[:EMITS]->(e:Emission)
+WITH city.population AS population,
+     COALESCE(SUM(e.total_emission), 0) AS totalEmissions
+WHERE population IS NOT NULL
 
-const q2Aggr = [
-    {
-        $match: {
-            "Total emissions (metric tonnes CO2e)": {$ne: null},
-            "Reporting Year": {$in: [2016, 2017]}
-        }
-    },
-    {
-        $group: {
-            _id: {
-                OrganisationNumber: "$Organisation Number",
-                ReportingYear: "$Reporting Year"
-            },
-            TotalEmissions: {
-                $sum: "$Total emissions (metric tonnes CO2e)"
-            }
-        }
-    },
-    {
-        $group: {
-            _id: "$_id.OrganisationNumber",
-            emissions2016: {
-                $max: {
-                    $cond: [
-                        {$eq: ["$_id.ReportingYear", 2016]},
-                        "$TotalEmissions",
-                        null
-                    ]
-                }
-            },
-            emissions2017: {
-                $max: {
-                    $cond: [
-                        {$eq: ["$_id.ReportingYear", 2017]},
-                        "$TotalEmissions",
-                        null
-                    ]
-                }
-            }
-        }
-    },
-    {
-        $project: {
-            _id: 1,
-            emissions2016: 1,
-            emissions2017: 1,
-            change: {
-                $cond: {
-                    if : {
-                        $and: [
-                            {$ne: ["$emissions2016", null]},
-                            {$ne: ["$emissions2017", null]}
-                        ]
-                    },
-                    then: {
-                        $cond: {
-                            if : {$gt: ["$emissions2016", "$emissions2017"]},
-                            then: "Decrease",
-                            else: "Increase"
-                        }
-                    },
-                    else: null
-                }
-            }
-        }
-    },
-];
+WITH collect({population: population, totalEmissions: totalEmissions}) AS data
+WITH [d IN data | d.population] AS populations,
+     [d IN data | d.totalEmissions] AS emissions
 
-const q3Aggr = [
-    {
-        $match: {
-            "Reporting Year": {$in: [2016, 2017]},
-            "Percentage reduction target": {
-                $exists: true
-            }
-        }
-    },
-    {
-        $group: {
-            _id: {
-                OrganisationNumber:
-                        "$Organisation Number",
-                ReportingYear: "$Reporting Year"
-            },
-            PercentageReductionTarget: {
-                $avg: "$Percentage reduction target"
-            }
-        }
-    },
-    {
-        $group: {
-            _id: "$_id.OrganisationNumber",
-            reductionTarget2016: {
-                $max: {
-                    $cond: [
-                        {$eq: ["$_id.ReportingYear", 2016]},
-                        "$PercentageReductionTarget",
-                        null
-                    ]
-                }
-            },
-            reductionTarget2017: {
-                $max: {
-                    $cond: [
-                        {$eq: ["$_id.ReportingYear", 2017]},
-                        "$PercentageReductionTarget",
-                        null
-                    ]
-                }
-            }
-        }
-    },
-    {
-        $project: {
-            _id: 1,
-            reductionTarget2016: 1,
-            reductionTarget2017: 1,
-            change: {
-                $cond: {
-                    if : {
-                        $and: [
-                            {
-                                $ne: [
-                                    "$reductionTarget2016",
-                                    null
-                                ]
-                            },
-                            {
-                                $ne: [
-                                    "$reductionTarget2017",
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    then: {
-                        $subtract: [
-                            "$reductionTarget2017",
-                            "$reductionTarget2016"
-                        ]
-                    },
-                    else: null
-                }
-            }
-        }
-    }
-];
+// Compute correlation coefficient
+WITH size(populations) AS n,
+     REDUCE(s = 0.0, i IN RANGE(0, size(populations)-1) | s + populations[i] * emissions[i]) AS sumXY,
+     REDUCE(sx = 0.0, x IN populations | sx + x) AS sumX,
+     REDUCE(sy = 0.0, y IN emissions | sy + y) AS sumY,
+     REDUCE(sxx = 0.0, x IN populations | sxx + x * x) AS sumXX,
+     REDUCE(syy = 0.0, y IN emissions | syy + y * y) AS sumYY
+WITH n, sumXY, sumX, sumY, sumXX, sumYY,
+     (n * sumXY - sumX * sumY) AS covarianceXY,
+     sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY)) AS denominator
+RETURN covarianceXY / denominator AS correlationCoefficient
+`;
 
-const q4Aggr = [
-    {
-        $match: {
-            "Percentage reduction target": {$exists: true},
-            $or: [
-                {"C40 City": {$exists: true}},
-                {"GCoM City": {$exists: true}}
-            ]
-        }
-    },
-    {
-        $group: {
-            _id: {
-                OrganisationNumber: "$Organisation Number",
-                C40City: {$ifNull: ["$C40 City", false]},
-                GCoMCity: {$ifNull: ["$GCoM City", false]}
-            },
-            PercentageReductionTargetSum: {$sum: "$Percentage reduction target"}
-        }
-    },
-    {
-        $group: {
-            _id: {
-                C40City: "$_id.C40City",
-                GCoMCity: "$_id.GCoMCity"
-            },
-            avgPercentageReductionTarget: {$avg: "$PercentageReductionTargetSum"}
-        }
-    },
-    {
-        $project: {
-            _id: 0,
-            C40City: "$_id.C40City",
-            GCoMCity: "$_id.GCoMCity",
-            avgPercentageReductionTarget: 1
-        }
-    }
-];
+const q2Aggr = `
+MATCH (o:Organisation)-[:EMITS {year: 2016.0}]-(e: Emission)
+WITH AVG(e.total_emission) AS avg2016
 
-const q5Aggr = [
-    {
-        $match: {
-            "Percentage reduction target": {$exists: true},
-            $or: [
-                {"Region": {$exists: true}},
-                {"CDP Region": {$exists: true}}
-            ]
-        }
-    },
-    {
-        $group: {
-            _id: {
-                OrganisationNumber: "$Organisation Number",
-                Region: {$ifNull: ["$Region", "$CDP Region"]}
-            },
-            PercentageReductionTargetSum: {$sum: "$Percentage reduction target"}
-        }
-    },
-    {
-        $group: {
-            _id: "$_id.Region",
-            avgPercentageReductionTarget: {$avg: "$PercentageReductionTargetSum"}
-        }
-    },
-    {
-        $project: {
-            _id: 1,
-            avgPercentageReductionTarget: 1
-        }
-    }
-];
+MATCH (o:Organisation)-[:EMITS {year: 2017.0}]-(e: Emission)
+WITH avg2016, AVG(e.total_emission) AS avg2017
 
-const q6Aggr = [
-    {
-        $match: {
-            "Percentage reduction target": {$exists: true}
-        }
-    },
-    {
-        $group: {
-            _id: {
-                OrganisationNumber: "$Organisation Number",
-                Organisation: "$Organisation",
-                City: "$City"
-            },
-            PercentageReductionTargetSum: {$sum: "$Percentage reduction target"}
-        }
-    },
-    {
-        $sort: {"PercentageReductionTargetSum": -1}
-    },
-    {
-        $limit: 1
-    },
-    {
-        $project: {
-            _id: 0,
-            OrganisationNumber: "$_id.OrganisationNumber",
-            Organisation: "$_id.Organisation",
-            City: "$_id.City",
-            PercentageReductionTargetSum: 1
-        }
-    }
-];
+RETURN avg2016, avg2017,
+avg2016 - avg2017 AS emissionsChange
+`;
 
-const q7Aggr = [
-    {
-        $match: {
-            Country: {$exists: true},
-            City: {$exists: true}
-        }
-    },
-    {
-        $group: {
-            _id: {
-                Country: "$Country",
-                City: "$City"
-            }
-        }
-    },
-    {
-        $group: {
-            _id: "$_id.Country",
-            cityCount: {$sum: 1}
-        }
-    }
-];
+const q3Aggr = 
+`MATCH (o:Organisation)-[:EMITS {year: 2016.0}]-(e: Emission)
+WITH AVG(e.pct_target_reduction) AS avg2016
 
-const q8Aggr = [
-    {
-        $match: {
-            "Country": {$exists: true}
-        }
-    },
-    {
-        $group: {
-            _id: "$Country"
-        }
-    },
-    {
-        $group: {
-            _id: null,
-            count: {$sum: 1}
-        }
-    }
-];
+MATCH (o:Organisation)-[:EMITS {year: 2017.0}]-(e: Emission)
+WITH avg2016, AVG(e.pct_target_reduction) AS avg2017
 
-const q9Aggr = [
-    {
-        $group: {
-            _id: {
-                baseEmissionsMissing: {
-                    $not: {
-                        $gt: [
-                            "$Total emissions (metric tonnes CO2e)",
-                            null
-                        ]
-                    }
-                },
-                PercentageReductionTarget:
-                        "$Percentage reduction target"
-            }
-        }
-    },
-    {
-        $match: {
-            "_id.baseEmissionsMissing": true
-        }
-    },
-    {
-        $group: {
-            _id: null,
-            count: {$sum: 1}
-        }
-    }
-];
+RETURN avg2016, avg2017,
+avg2017 - avg2016 AS pctTargetReductionChange
+`;
 
-const q10Aggr = [
-    {
-        $match: {
-            Sector: {
-                $exists: true
-            }
-        }
-    },
-    {
-        $group: {
-            _id: "$Sector",
-            count: {
-                $sum: 1
-            }
-        }
-    },
-    {
-        $sort: {
-            count: -1
-        }
-    }
-];
+const q4Aggr = `
+MATCH (e:Emission)-[:EMITS]-(:Organisation)-[:IN_CITY]->(city:City)
+WHERE city.c40 IS NOT NULL
+WITH city, AVG(e.pct_target_reduction) AS avg
+WHERE city.c40 = true
+RETURN 'C40 member' AS organization, AVG(avg) AS avgPctTargetReduction
+
+UNION
+
+MATCH (e:Emission)-[:EMITS]-(:Organisation)-[:IN_CITY]->(city:City)
+WHERE city.c40 = false OR city.c40 IS NULL
+WITH city, AVG(e.pct_target_reduction) AS avg
+RETURN 'Not C40 member' AS organization, AVG(avg) AS avgPctTargetReduction
+
+UNION
+
+MATCH (e:Emission)-[:EMITS]-(:Organisation)-[:IN_CITY]->(city:City)
+WHERE city.gcom IS NOT NULL
+WITH city, AVG(e.pct_target_reduction) AS avg
+WHERE city.gcom = true
+RETURN 'GCoM member' AS organization, AVG(avg) AS avgPctTargetReduction
+
+UNION
+
+MATCH (e:Emission)-[:EMITS]-(:Organisation)-[:IN_CITY]->(city:City)
+WHERE city.gcom IS NULL OR city.gcom = false
+WITH city, AVG(e.pct_target_reduction) AS avg
+RETURN 'Not GCoM member' AS organization, AVG(avg) AS avgPctTargetReduction
+`;
+
+const q5Aggr = `
+MATCH (e:Emission)-[:EMITS]-(:Organisation)-[:IN_CITY]->(:City)-[:IN_COUNTRY]->(:Country)-[:IN_REGION]->(region:Region)
+WITH region, SUM(e.total_emission) AS totalEmissions, AVG(e.pct_target_reduction) AS avgPctTargetReduction
+RETURN region.name AS regionName, totalEmissions, avgPctTargetReduction
+`;
+
+const q6Aggr = `
+MATCH (e:Emission)-[:EMITS]-(o:Organisation)
+WHERE e.pct_target_reduction IS NOT NULL
+WITH o.name AS orgName, MAX(e.pct_target_reduction) AS maxReductionPct
+RETURN orgName, maxReductionPct
+ORDER BY maxReductionPct DESC
+LIMIT 1
+`;
+
+const q7Aggr = `
+MATCH (city:City)-[:IN_COUNTRY]->(country:Country)
+RETURN country.name AS countryName, count(city) AS numberOfCities
+ORDER BY countryName
+`;
+
+const q8Aggr = `
+MATCH (c:Country)
+RETURN count(c) AS numberOfCountriesInData
+`;
+
+const q9Aggr = `
+MATCH (o:Organisation)-[:EMITS]->(e:Emission)
+WHERE e.pct_target_reduction IS NOT NULL AND e.total_emission IS NULL
+RETURN count(DISTINCT o) AS orgsWithPctTargetButNoBaseline
+`;
+
+const q10Aggr = `
+MATCH (o:Organisation)
+WHERE o.sector IS NOT NULL
+WITH o.sector AS sector, count(o) AS sectorCount
+ORDER BY sectorCount DESC
+LIMIT 1
+RETURN sector AS mostCommonSector, sectorCount AS countOfOrganisations
+`;
 
 module.exports = {q1Aggr, q2Aggr, q3Aggr, q4Aggr,
     q5Aggr, q6Aggr, q7Aggr, q8Aggr, q9Aggr, q10Aggr};

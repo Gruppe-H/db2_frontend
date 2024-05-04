@@ -1,11 +1,11 @@
 const express = require('express');
-const { connectToMongoDB } = require('./db');
+const { connectToNeo4j } = require('./db');
 const routes = require('./routes/routes');
 
 const app = express();
 const port = 3000;
 
-connectToMongoDB();
+connectToNeo4j();
 
 app.get('/', (req, res) => {
     res.send('<h1>SPA2</h1>' +

@@ -4,17 +4,18 @@
 This is the frontend to the database assignment, where the answers to our questions can be found.
 
 ### To run
-To run make sure to have made a database called spa2 and a collection called emissions 
+To run open terminal and write '**node app.js**'
 
-or change the database- and collection name in `db.js` in the function:
-```
-function getCollection() {
-    const database = client.db('<<your-database-name>>');
-    return database.collection('<<your-collection-name>>');
-}
-```
+make sure your database is named neo4j and password is 12345678. 
 
-In your mongoDB collection import the JSON files from [here.](https://github.com/Gruppe-H/DB_assignment2/tree/master/jsons)
+
+or change the user and password in `db.js` in the function:
+```
+// Neo4j connection URI
+const uri = 'bolt://localhost:7687';
+const user = 'neo4j';
+const password = '12345678';
+```
 
 Then clone this repository.
 
